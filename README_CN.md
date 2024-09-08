@@ -1,6 +1,6 @@
 # Markdown-i18n
 
-[英文](README.md) | [中文](README_CN.md)
+[英文](README.md) | [中文](README_CN.md) | [繁体中文](README_zh-hant.md) ｜ [日本語](README_ja.md) | [한국어](README_ko.md)
 
 每次更新项目文档都要同时维护两份或者多种语言的文档实在过于痛苦了，于是我写了个脚本来帮我更新多语言 README 文档。我希望可以用自己的母语写文档，并能同时翻译到任何语言，并且保持文档格式不变。Markdown-i18n 解决了这些痛点。
 
