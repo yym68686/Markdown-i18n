@@ -13,13 +13,35 @@
 
 ## 使用指南
 
-安装依赖
+1. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-修改 translate_md.py 文件中的配置
+2. 开始翻译
+
+方法一：创建一个新的 python 文件
+
+```python
+import os
+from translate_md import translate
+from parse_markdown import check_markdown_parse
+
+api_key = os.getenv("API")       # OpenAI API key
+api_url = os.getenv("API_URL")   # OpenAI API URL
+engine = "gpt-4o"                # 语言模型
+
+input_file_path = "README-zh.md" # 原文件路径
+output_file_path = "README.md"   # 输出文件路径
+language = "English"             # 目标语言
+check_markdown_parse(input_file_path) # 检查 markdown 文件是否解析正确，解析正确就可以翻译，如果报错需要联系作者修复。这一步不是必要的，只是为了保证翻译的格式准确性。
+translate(input_file_path, output_file_path, language, api_key, api_url, engine) # 翻译原markdown文件到目标语言并保存到输出文件
+```
+
+方法二：使用仓库里现成的脚本
+
+直接修改 translate_md.py 文件中的配置，然后运行脚本即可。
 
 ```python
 input_file_path = "README_CN.md" # 原文件路径
