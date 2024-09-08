@@ -27,7 +27,7 @@ def translate(input_file_path, output_file_path="output.md", language="English",
     )
 
     # 读取 Markdown 文件
-    raw_paragraphs = get_entities_from_markdown_file(input_file_path, delimiter='\n')
+    raw_paragraphs = get_entities_from_markdown_file(input_file_path)
     target_paragraphs = raw_paragraphs
 
     # 逐段翻译

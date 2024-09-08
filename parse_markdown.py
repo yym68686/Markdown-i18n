@@ -33,16 +33,14 @@ class Paragraph(MarkdownEntity):
     def __init__(self, content: str):
         super().__init__(content, 'Paragraph')
 
-def parse_markdown(lines, delimiter='\n\n'):
+def parse_markdown(lines, delimiter='\n'):
     entities = []
     current_code_block = []
     in_code_block = False
     language = None
 
     for line in lines:
-        # line = line.strip()
-
-        if line.startswith('#'):
+        if line.startswith('#') and not in_code_block:
             level = line.count('#')
             title_content = line[level:].strip()
             entities.append(Title(title_content, level))
@@ -60,7 +58,7 @@ def parse_markdown(lines, delimiter='\n\n'):
         elif in_code_block:
             current_code_block.append(line)
 
-        elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1:
+        elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1 and line.strip().endswith(')'):
             start = line.index('[') + 1
             end = line.index(']')
             url_start = line.index('(') + 1
@@ -111,7 +109,7 @@ def read_markdown_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         return file.read()
 
-def split_markdown(text, delimiter='\n\n'):
+def split_markdown(text, delimiter='\n'):
     # 使用两个换行符作为分割标记，分割段落
     # 创建一个新的列表来存储结果
     paragraphs = text.split(delimiter)
@@ -128,7 +126,7 @@ def split_markdown(text, delimiter='\n\n'):
 
     return result
 
-def get_entities_from_markdown_file(file_path, delimiter='\n\n'):
+def get_entities_from_markdown_file(file_path, delimiter='\n'):
     # 读取 Markdown 文件
     markdown_text = read_markdown_file(file_path)
 
@@ -138,14 +136,33 @@ def get_entities_from_markdown_file(file_path, delimiter='\n\n'):
     # 解析 Markdown 文档
     return parse_markdown(paragraphs, delimiter=delimiter)
 
+def check_markdown_parse(markdown_file_path, output_file_path="output.md", delimiter='\n'):
+    # 读取 Markdown 文件
+    markdown_text = read_markdown_file(markdown_file_path)
+
+    # 分割 Markdown 文档
+    paragraphs = split_markdown(markdown_text, delimiter=delimiter)
+
+    # 解析 Markdown 文档
+    parsed_entities = parse_markdown(paragraphs, delimiter=delimiter)
+
+    # 将解析结果转换为文本
+    converted_text = convert_entities_to_text(parsed_entities)
+
+    # 检查原始文本和转换后的文本是否相同
+    if markdown_text != converted_text:
+        save_text_to_file(converted_text, output_file_path)
+        raise ValueError("The converted text does not match the original text.")
+
+    return parsed_entities
+
 if __name__ == '__main__':
     markdown_file_path = "README_CN.md"  # 替换为你的 Markdown 文件路径
 
     # 读取 Markdown 文件
-    delimiter = '\n'
     markdown_text = read_markdown_file(markdown_file_path)
-    paragraphs = split_markdown(markdown_text, delimiter=delimiter)
-    parsed_entities = parse_markdown(paragraphs, delimiter=delimiter)
+    paragraphs = split_markdown(markdown_text)
+    parsed_entities = parse_markdown(paragraphs)
 
     # # 显示解析结果
     # result = [str(entity) for entity in parsed_entities]

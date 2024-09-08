@@ -1,8 +1,15 @@
 # Markdown-i18n
 
-Add i18n support to any markdown document, supporting translation from any language to any language.
-
 [English](README.md) | [Chinese](README_CN.md)
+
+Every time I update the project documentation, maintaining two or more versions in different languages is really painful. So, I wrote a script to help me update multi-language README documents. I hope to write the documentation in my native language and translate it into any other language while keeping the document format unchanged. Markdown-i18n solves these pain points.
+
+## Features
+
+- Add i18n support to any markdown document, supporting translation from any language to any language.
+- Perfectly follow the format of the original document.
+- At the same time, ensure the translation is authentic and accurate.
+- Efficient translation.
 
 ## User Guide
 
