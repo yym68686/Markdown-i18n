@@ -58,7 +58,7 @@ def parse_markdown(lines, delimiter='\n'):
         elif in_code_block:
             current_code_block.append(line)
 
-        elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1 and line.strip().endswith(')'):
+        elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1 and line.strip().endswith(')') and line.strip().startswith('['):
             start = line.index('[') + 1
             end = line.index(']')
             url_start = line.index('(') + 1
