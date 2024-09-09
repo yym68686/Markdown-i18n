@@ -15,8 +15,9 @@ def translate(input_file_path, output_file_path="output.md", language="English",
         "Retain all spaces and line breaks in the original text. "
         "Please do not wrap the code in code blocks, I will handle it myself. "
         "If the code has comments, you should translate the comments as well. "
+        "If the original text is already in {}, please do not skip the translation and directly output the original text. "
         "This is the content you need to translate: "
-    ).format(language)
+    ).format(language, language)
 
     agent = chatgpt(
         api_key=api_key,
