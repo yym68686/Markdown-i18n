@@ -1,36 +1,39 @@
 class MarkdownEntity:
-    def __init__(self, content: str, entity_type: str):
+    def __init__(self, content: str = "", entity_type: str = ""):
         self.content = content
         self.entity_type = entity_type
 
     def __repr__(self):
         return f'<{self.entity_type}: {self.content}>'
 
+    def copy(self):
+        return self.__class__(self.content)
+
 class Title(MarkdownEntity):
-    def __init__(self, content: str, level: int):
+    def __init__(self, content: str = "", level: int = 1):
         super().__init__(content, 'Title')
         self.level = level
 
 class CodeBlock(MarkdownEntity):
-    def __init__(self, content: str, language: str = 'python'):
+    def __init__(self, content: str = "", language: str = 'python'):
         super().__init__(content, 'CodeBlock')
         self.language = language
 
 class ListItem(MarkdownEntity):
-    def __init__(self, content: str):
+    def __init__(self, content: str = ""):
         super().__init__(content, 'ListItem')
 
 class Link(MarkdownEntity):
-    def __init__(self, content: str, url: str):
+    def __init__(self, content: str = "", url: str = ""):
         super().__init__(content, 'Link')
         self.url = url
 
 class EmptyLine(MarkdownEntity):
-    def __init__(self, content: str):
+    def __init__(self, content: str = ""):
         super().__init__(content, 'EmptyLine')
 
 class Paragraph(MarkdownEntity):
-    def __init__(self, content: str):
+    def __init__(self, content: str = ""):
         super().__init__(content, 'Paragraph')
 
 def parse_markdown(lines, delimiter='\n'):
@@ -126,9 +129,12 @@ def split_markdown(text, delimiter='\n'):
 
     return result
 
-def get_entities_from_markdown_file(file_path, delimiter='\n'):
+def get_entities_from_markdown_file(file_path, delimiter='\n', raw_text=None):
     # 读取 Markdown 文件
-    markdown_text = read_markdown_file(file_path)
+    if raw_text == None:
+        markdown_text = read_markdown_file(file_path)
+    else:
+        markdown_text = raw_text
 
     # 分割 Markdown 文档
     paragraphs = split_markdown(markdown_text, delimiter=delimiter)

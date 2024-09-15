@@ -1,10 +1,38 @@
 import os
+import difflib
+import subprocess
 from ModelMerge import chatgpt
 from parse_markdown import get_entities_from_markdown_file, process_markdown_entities_and_save
+
+def get_latest_commit_file_content(file_path):
+    try:
+        # 获取git仓库的根目录
+        repo_root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
+
+        # 将文件路径转换为相对路径
+        relative_path = os.path.relpath(file_path, repo_root)
+
+        # 获取最新提交的文件内容
+        command = ["git", "show", f"HEAD:{relative_path}"]
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        print(f"发生错误：{e}")
+        return None
 
 def translate_text(text, agent):
     result = agent.ask(text)
     return result
+
+def get_latest_commit_file_entities(input_file_path, current_source_content):
+    latest_commit_content = get_latest_commit_file_content(input_file_path)
+    if latest_commit_content:
+        latest_commit_entities = get_entities_from_markdown_file(None, raw_text=latest_commit_content)
+    else:
+        latest_commit_entities = [entity.copy() for entity in current_source_content]
+        for entity in latest_commit_entities:
+            entity.content = ""
+    return latest_commit_entities
 
 def translate(input_file_path, output_file_path="output.md", language="English", api_key=None, api_url="https://api.openai.com/v1/chat/completions", engine="gpt-4o"):
     if not api_key:
@@ -27,19 +55,60 @@ def translate(input_file_path, output_file_path="output.md", language="English",
         use_plugins=False
     )
 
-    # 读取 Markdown 文件
-    raw_paragraphs = get_entities_from_markdown_file(input_file_path)
-    target_paragraphs = raw_paragraphs
+    # 读取当前源文件内容
+    current_source_content = get_entities_from_markdown_file(input_file_path)
 
-    # 逐段翻译
-    for index, paragraph in enumerate(raw_paragraphs):
-        if paragraph.content and paragraph.content.strip() != "":
-            translated_text = translate_text(paragraph.content, agent)
-            if translated_text:
-                target_paragraphs[index].content = translated_text
+    # 读取已翻译的文件内容
+    if os.path.exists(output_file_path):
+        current_translated_content = get_entities_from_markdown_file(output_file_path)
+    else:
+        current_translated_content = []
+    current_translated_entities = get_latest_commit_file_entities(output_file_path, current_source_content)
+
+    # 获取最新提交的源文件内容
+    latest_commit_entities = get_latest_commit_file_entities(input_file_path, current_source_content)
+
+    # 使用 difflib 比较两个版本的差异
+    differ = difflib.Differ()
+    diff = list(differ.compare([entity.content for entity in latest_commit_entities],
+                               [entity.content for entity in current_source_content]))
+
+    # 翻译修改的部分
+    translated_entities = []
+    source_index = 0
+    translated_index = 0
+
+    for line in diff:
+        if line.startswith('  '):  # 未修改的行
+            if translated_index < len(current_translated_content):
+                translated_entities.append(current_translated_content[translated_index])
+                translated_index += 1
+            else:
+                # 如果已翻译内容不足，则翻译源内容
+                entity = current_source_content[source_index]
+                if entity.content.strip():
+                    translated_text = translate_text(entity.content, agent)
+                    entity.content = translated_text if translated_text else entity.content
+                translated_entities.append(entity)
+            source_index += 1
+        elif line.startswith('+ '):  # 新增的行
+            entity = current_source_content[source_index]
+            if entity.content.strip():
+                translated_text = translate_text(entity.content, agent)
+                entity.content = translated_text if translated_text else entity.content
+            translated_entities.append(entity)
+            source_index += 1
+        elif line.startswith('- '):  # 删除的行
+            if translated_index < len(current_translated_content):
+                translated_index += 1
+
+    # 检查是否所有行都未修改
+    all_unchanged = all(line.startswith('  ') for line in diff)
+    if all_unchanged:
+        translated_entities = current_translated_entities
 
     # 输出翻译结果
-    process_markdown_entities_and_save(target_paragraphs, output_file_path)
+    process_markdown_entities_and_save(translated_entities, output_file_path)
 
 if __name__ == "__main__":
     input_file_path = "README_CN.md"
