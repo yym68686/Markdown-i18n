@@ -60,11 +60,9 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     # 读取已翻译的文件内容
     if os.path.exists(output_file_path):
-        current_translated_content = get_entities_from_markdown_file(output_file_path)
+        current_translated_entities = get_latest_commit_file_entities(output_file_path, current_source_content)
     else:
-        current_translated_content = []
-    current_translated_entities = get_latest_commit_file_entities(output_file_path, current_source_content)
-
+        current_translated_entities = get_entities_from_markdown_file(output_file_path)
     # 获取最新提交的源文件内容
     latest_commit_entities = get_latest_commit_file_entities(input_file_path, current_source_content)
 
@@ -80,8 +78,8 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     for line in diff:
         if line.startswith('  '):  # 未修改的行
-            if translated_index < len(current_translated_content):
-                translated_entities.append(current_translated_content[translated_index])
+            if translated_index < len(current_translated_entities):
+                translated_entities.append(current_translated_entities[translated_index])
                 translated_index += 1
             else:
                 # 如果已翻译内容不足，则翻译源内容
@@ -99,7 +97,7 @@ def translate(input_file_path, output_file_path="output.md", language="English",
             translated_entities.append(entity)
             source_index += 1
         elif line.startswith('- '):  # 删除的行
-            if translated_index < len(current_translated_content):
+            if translated_index < len(current_translated_entities):
                 translated_index += 1
 
     # 检查是否所有行都未修改

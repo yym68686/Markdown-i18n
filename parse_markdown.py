@@ -4,7 +4,7 @@ class MarkdownEntity:
         self.entity_type = entity_type
 
     def __repr__(self):
-        return f'<{self.entity_type}: {self.content}>'
+        return f'<{self.entity_type}: {repr(self.content)}>'
 
     def copy(self):
         return self.__class__(self.content)

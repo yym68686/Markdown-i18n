@@ -6,6 +6,7 @@ Updating project documentation each time and maintaining two or more versions in
 
 ## Features
 
+- Support incremental translation. Only translate the modified parts, the unchanged parts will not be translated again. Significantly improve translation efficiency. Significantly reduce token consumption.
 - Add i18n support to any markdown document, supporting translation from any language to any language.
 - Perfectly follow the format of the original file.
 - At the same time, ensure the translation is authentic and accurate.
