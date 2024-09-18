@@ -6,18 +6,23 @@ from parse_markdown import get_entities_from_markdown_file, process_markdown_ent
 
 def get_latest_commit_file_content(file_path):
     try:
-        # 获取git仓库的根目录
-        repo_root = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
+        # 获取文件所在的 Git 仓库根目录
+        repo_root = subprocess.run(["git", "-C", os.path.dirname(file_path), "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
 
         # 将文件路径转换为相对路径
         relative_path = os.path.relpath(file_path, repo_root)
 
         # 获取最新提交的文件内容
-        command = ["git", "show", f"HEAD:{relative_path}"]
-        result = subprocess.run(command, capture_output=True, text=True, check=True)
+        command = ["git", "-C", repo_root, "show", f"HEAD:{relative_path}"]
+        result = subprocess.run(command, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+
         return result.stdout
-    except subprocess.CalledProcessError as e:
-        print(f"发生错误：{e}")
+    except Exception as e:
+        print(f"发生未知错误：{e}")
         return None
 
 def translate_text(text, agent):
@@ -61,7 +66,9 @@ def translate(input_file_path, output_file_path="output.md", language="English",
     # 读取已翻译的文件内容
     if os.path.exists(output_file_path):
         current_translated_entities = get_latest_commit_file_entities(output_file_path, current_source_content)
+        # print("latest_commit_entities", current_translated_entities)
     else:
+        # 如果输出文件不存在，自动创建文件，并返回空字符串
         current_translated_entities = get_entities_from_markdown_file(output_file_path)
     # 获取最新提交的源文件内容
     latest_commit_entities = get_latest_commit_file_entities(input_file_path, current_source_content)
@@ -71,6 +78,7 @@ def translate(input_file_path, output_file_path="output.md", language="English",
     diff = list(differ.compare([entity.content for entity in latest_commit_entities],
                                [entity.content for entity in current_source_content]))
 
+    # print("diff", diff)
     # 翻译修改的部分
     translated_entities = []
     source_index = 0
@@ -78,22 +86,28 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     for line in diff:
         if line.startswith('  '):  # 未修改的行
-            if translated_index < len(current_translated_entities):
+            # print("line", repr(line), translated_index < len(current_translated_entities), current_translated_entities[translated_index].content != '', repr(current_translated_entities[translated_index].content))
+            if translated_index < len(current_translated_entities) and current_translated_entities[translated_index].content != '':
                 translated_entities.append(current_translated_entities[translated_index])
                 translated_index += 1
             else:
                 # 如果已翻译内容不足，则翻译源内容
                 entity = current_source_content[source_index]
+                # print("entity", entity)
                 if entity.content.strip():
+                    print(">", entity.content)
                     translated_text = translate_text(entity.content, agent)
                     entity.content = translated_text if translated_text else entity.content
+                    print("<", repr(entity.content), end="\n\n")
                 translated_entities.append(entity)
             source_index += 1
         elif line.startswith('+ '):  # 新增的行
             entity = current_source_content[source_index]
             if entity.content.strip():
+                print(">", entity.content)
                 translated_text = translate_text(entity.content, agent)
                 entity.content = translated_text if translated_text else entity.content
+                print("<", repr(entity.content), end="\n\n")
             translated_entities.append(entity)
             source_index += 1
         elif line.startswith('- '):  # 删除的行
@@ -102,11 +116,14 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     # 检查是否所有行都未修改
     all_unchanged = all(line.startswith('  ') for line in diff)
-    if all_unchanged:
+    is_all_empty = all(entity.content.strip() == '' for entity in current_translated_entities)
+    if all_unchanged and not is_all_empty:
         translated_entities = current_translated_entities
+        # 输出翻译结果
 
-    # 输出翻译结果
-    process_markdown_entities_and_save(translated_entities, output_file_path)
+    is_all_empty = all(entity.content.strip() == '' for entity in translated_entities)
+    if not is_all_empty:
+        process_markdown_entities_and_save(translated_entities, output_file_path)
 
 if __name__ == "__main__":
     input_file_path = "README_CN.md"

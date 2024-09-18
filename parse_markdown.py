@@ -1,3 +1,5 @@
+import os
+
 class MarkdownEntity:
     def __init__(self, content: str = "", entity_type: str = ""):
         self.content = content
@@ -109,8 +111,15 @@ def process_markdown_entities_and_save(entities, file_path, raw_text=None):
     save_text_to_file(text_output, file_path)
 
 def read_markdown_file(file_path):
-    with open(file_path, 'r', encoding='utf-8') as file:
-        return file.read()
+    try:
+        with open(file_path, 'r', encoding='utf-8') as file:
+            return file.read()
+    except FileNotFoundError:
+        # 如果文件不存在，创建一个空文件
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        with open(file_path, 'w', encoding='utf-8') as file:
+            pass  # 创建一个空文件
+        return ""  # 返回空字符串
 
 def split_markdown(text, delimiter='\n'):
     # 使用两个换行符作为分割标记，分割段落
