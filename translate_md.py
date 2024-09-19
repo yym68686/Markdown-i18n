@@ -95,8 +95,8 @@ def translate(input_file_path, output_file_path="output.md", language="English",
                 entity = current_source_content[source_index]
                 # print("entity", entity)
                 if entity.content.strip():
-                    print(">", entity.content)
                     translated_text = translate_text(entity.content, agent)
+                    print(">", entity.content)
                     entity.content = translated_text if translated_text else entity.content
                     print("<", repr(entity.content), end="\n\n")
                 translated_entities.append(entity)
@@ -104,8 +104,8 @@ def translate(input_file_path, output_file_path="output.md", language="English",
         elif line.startswith('+ '):  # 新增的行
             entity = current_source_content[source_index]
             if entity.content.strip():
-                print(">", entity.content)
                 translated_text = translate_text(entity.content, agent)
+                print(">", entity.content)
                 entity.content = translated_text if translated_text else entity.content
                 print("<", repr(entity.content), end="\n\n")
             translated_entities.append(entity)
