@@ -1,4 +1,5 @@
 import os
+import re
 
 class MarkdownEntity:
     def __init__(self, content: str = "", entity_type: str = ""):
@@ -37,6 +38,11 @@ class EmptyLine(MarkdownEntity):
 class Paragraph(MarkdownEntity):
     def __init__(self, content: str = ""):
         super().__init__(content, 'Paragraph')
+
+class OrderList(MarkdownEntity):
+    def __init__(self, content: str = "", index: int = 1):
+        super().__init__(content, 'OrderList')
+        self.index = index
 
 class DisplayMath(MarkdownEntity):
     def __init__(self, content: str = ""):
@@ -92,6 +98,10 @@ def parse_markdown(lines, delimiter='\n'):
             entities.append(EmptyLine(line))
         # elif line == delimiter:
         #     entities.append(EmptyLine(line))
+        elif bool(re.match(r'^\d+\.\s', line)):
+            index = int(re.match(r'^\d+\.\s', line).group(0)[:-2])
+            content = re.sub(r'^\d+\.\s', '', line)
+            entities.append(OrderList(content, index))
         elif line:
             entities.append(Paragraph(line))
 
@@ -115,6 +125,8 @@ def convert_entities_to_text(entities):
             result.append(f"[{entity.content}]({entity.url})")
         elif isinstance(entity, EmptyLine):
             result.append(f"{entity.content}")
+        elif isinstance(entity, OrderList):
+            result.append(f"{entity.index}. {entity.content}")
         elif isinstance(entity, Paragraph):
             result.append(f"{entity.content}")
         elif isinstance(entity, DisplayMath):
