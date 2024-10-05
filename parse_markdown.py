@@ -44,6 +44,10 @@ class OrderList(MarkdownEntity):
         super().__init__(content, 'OrderList')
         self.index = index
 
+class UnOrderList(MarkdownEntity):
+    def __init__(self, content: str = ""):
+        super().__init__(content, 'UnOrderList')
+
 class DisplayMath(MarkdownEntity):
     def __init__(self, content: str = ""):
         super().__init__(content, 'DisplayMath')
@@ -102,6 +106,9 @@ def parse_markdown(lines, delimiter='\n'):
             index = int(re.match(r'^\d+\.\s', line).group(0)[:-2])
             content = re.sub(r'^\d+\.\s', '', line)
             entities.append(OrderList(content, index))
+        elif bool(re.match(r'^-\s', line)):
+            content = re.sub(r'^-\s', '', line)
+            entities.append(UnOrderList(content))
         elif line:
             entities.append(Paragraph(line))
 
@@ -127,6 +134,8 @@ def convert_entities_to_text(entities):
             result.append(f"{entity.content}")
         elif isinstance(entity, OrderList):
             result.append(f"{entity.index}. {entity.content}")
+        elif isinstance(entity, UnOrderList):
+            result.append(f"- {entity.content}")
         elif isinstance(entity, Paragraph):
             result.append(f"{entity.content}")
         elif isinstance(entity, DisplayMath):
@@ -228,4 +237,5 @@ if __name__ == '__main__':
     # process_markdown_entities_and_save(parsed_entities, output_file_path, raw_text=markdown_text)
 
     # print(f"Markdown 文档已保存到 {output_file_path}")
-    check_markdown_parse("/Users/yanyuming/Downloads/GitHub/xue/README.md", "output.md")
+    check_markdown_parse("/Users/yanyuming/Downloads/GitHub/PurePage/index.md", "output.md")
+    # check_markdown_parse("/Users/yanyuming/Downloads/GitHub/xue/README.md", "output.md")
