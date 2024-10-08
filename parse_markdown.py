@@ -12,9 +12,9 @@ class MarkdownEntity:
     def copy(self):
         return self.__class__(self.content)
 
-class Title(MarkdownEntity):
+class TitleEntity(MarkdownEntity):
     def __init__(self, content: str = "", level: int = 1):
-        super().__init__(content, 'Title')
+        super().__init__(content, 'TitleEntity')
         self.level = level
 
 class CodeBlock(MarkdownEntity):
@@ -26,14 +26,14 @@ class ListItem(MarkdownEntity):
     def __init__(self, content: str = ""):
         super().__init__(content, 'ListItem')
 
-class Link(MarkdownEntity):
+class LinkEntity(MarkdownEntity):
     def __init__(self, content: str = "", url: str = ""):
-        super().__init__(content, 'Link')
+        super().__init__(content, 'LinkEntity')
         self.url = url
 
-class Image(MarkdownEntity):
+class ImageEntity(MarkdownEntity):
     def __init__(self, content: str = "", url: str = ""):
-        super().__init__(content, 'Image')
+        super().__init__(content, 'ImageEntity')
         self.url = url
         self.alt_text = content
 
@@ -187,7 +187,7 @@ def parse_markdown(lines, delimiter='\n'):
         elif line.startswith('#') and not in_code_block and not in_math_block:
             level = line.count('#')
             title_content = line[level:].strip()
-            entities.append(Title(title_content, level))
+            entities.append(TitleEntity(title_content, level))
         elif line.startswith('```'):
             if in_code_block and language:
                 entities.append(CodeBlock('\n'.join(current_code_block), language))
@@ -206,7 +206,7 @@ def parse_markdown(lines, delimiter='\n'):
             url_end = line.index(')')
             link_text = line[start:end].strip()
             link_url = line[url_start:url_end].strip()
-            entities.append(Link(link_text, link_url))
+            entities.append(LinkEntity(link_text, link_url))
         elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1 and line.strip().endswith(')') and line.strip().startswith('![') and line.count('!') == 1:
             start = line.index('[') + 1
             end = line.index(']')
@@ -214,7 +214,7 @@ def parse_markdown(lines, delimiter='\n'):
             url_end = line.index(')')
             link_text = line[start:end].strip()
             link_url = line[url_start:url_end].strip()
-            entities.append(Image(link_text, link_url))
+            entities.append(ImageEntity(link_text, link_url))
         else:
             # Check for list items
             list_match = re.match(r'^(\s*)([*+-]|\d+\.)\s(.+)$', line)
@@ -263,7 +263,7 @@ def parse_markdown(lines, delimiter='\n'):
     return entities
 
 def convert_entity_to_text(entity, indent=''):
-    if isinstance(entity, Title):
+    if isinstance(entity, TitleEntity):
         return f"{'#' * entity.level} {entity.content}"
     elif isinstance(entity, CodeBlock):
         code = entity.content.lstrip('\n').rstrip('\n')
@@ -279,9 +279,9 @@ def convert_entity_to_text(entity, indent=''):
         # prefix = f"{indent}{entity.index}. " if isinstance(entity, OrderedListItem) else f"{indent}- "
         content = convert_entities_to_text(entity.children, inline=True)
         return f"{prefix}{content}"
-    elif isinstance(entity, Link):
+    elif isinstance(entity, LinkEntity):
         return f"[{entity.content}]({entity.url})"
-    elif isinstance(entity, Image):
+    elif isinstance(entity, ImageEntity):
         return f"![{entity.content}]({entity.url})"
     elif isinstance(entity, InlineLink):
         return f"[{entity.content}]({entity.url})"
