@@ -128,21 +128,36 @@ def parse_inline_elements(text):
             else:
                 current_text += text[i:]
                 break
-        elif text[i] == '[':  # Potential link
+        elif text[i] == '[':  # 潜在的链接
             if current_text:
                 elements.append(current_text)
                 current_text = ""
-            link_end = text.find(')', i)
-            if link_end != -1 and '](' in text[i:link_end]:
-                content_end = text.index(']', i)
-                url_start = content_end + 2
-                content = text[i+1:content_end]
-                url = text[url_start:link_end]
-                elements.append(InlineLink(content, url))
-                i = link_end + 1
-            else:
-                current_text += text[i]
-                i += 1
+
+            # 查找匹配的右括号
+            bracket_count = 1
+            j = i + 1
+            while j < len(text) and bracket_count > 0:
+                if text[j] == '[':
+                    bracket_count += 1
+                elif text[j] == ']':
+                    bracket_count -= 1
+                j += 1
+
+            if j < len(text) and text[j:j+2] == '(':
+                # 找到了有效的链接格式
+                content_end = j - 1
+                url_start = j + 1
+                url_end = text.find(')', url_start)
+                if url_end != -1:
+                    content = text[i+1:content_end]
+                    url = text[url_start:url_end]
+                    elements.append(InlineLink(content, url))
+                    i = url_end + 1
+                    continue
+
+            # 如果不是有效的链接格式，将其作为普通文本处理
+            current_text += text[i]
+            i += 1
         else:
             current_text += text[i]
             i += 1
@@ -159,7 +174,7 @@ def parse_markdown(lines, delimiter='\n'):
     in_code_block = False
     in_math_block = False
     language = None
-    list_stack = []
+    # list_stack = []
 
     for line in lines:
         # print(repr(line))
@@ -288,6 +303,7 @@ def convert_entity_to_text(entity, indent=''):
     elif isinstance(entity, EmptyLine):
         return f"{entity.content}"
     elif isinstance(entity, Paragraph):
+        # print("Paragraph", entity.content)
         return f"{entity.content}"
     elif isinstance(entity, DisplayMath):
         return f"$$\n{entity.content}\n$$"
@@ -371,7 +387,7 @@ def get_entities_from_markdown_file(file_path, delimiter='\n', raw_text=None):
     # 解析 Markdown 文档
     return parse_markdown(paragraphs, delimiter=delimiter)
 
-def check_markdown_parse(markdown_file_path, output_file_path="output.md", delimiter='\n'):
+def check_markdown_parse(markdown_file_path, output_file_path="output.md", delimiter='\n', debug=False):
     # 读取 Markdown 文件
     markdown_text = read_markdown_file(markdown_file_path)
 
@@ -380,9 +396,10 @@ def check_markdown_parse(markdown_file_path, output_file_path="output.md", delim
 
     # 解析 Markdown 文档
     parsed_entities = parse_markdown(paragraphs, delimiter=delimiter)
-    # print(parsed_entities)
-    # for entity in parsed_entities:
-    #     print(entity)
+    if debug:
+        # print(parsed_entities)
+        for entity in parsed_entities:
+            print(entity)
 
     # 将解析结果转换为文本
     converted_text = convert_entities_to_text(parsed_entities)
