@@ -123,7 +123,7 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     is_all_empty = all(entity.content.strip() == '' for entity in translated_entities)
     if not is_all_empty:
-        process_markdown_entities_and_save(translated_entities, output_file_path)
+        process_markdown_entities_and_save(translated_entities, output_file_path, linemode=True)
 
 if __name__ == "__main__":
     input_file_path = "README_CN.md"

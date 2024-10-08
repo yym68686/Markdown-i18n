@@ -277,19 +277,21 @@ def parse_markdown(lines, delimiter='\n'):
 
     return entities
 
-def convert_entity_to_text(entity, indent=''):
+def convert_entity_to_text(entity, indent='', linemode=False):
     if isinstance(entity, TitleEntity):
         return f"{'#' * entity.level} {entity.content}"
     elif isinstance(entity, CodeBlock):
         code = entity.content.lstrip('\n').rstrip('\n')
         return f"```{entity.language}\n{code}\n```"
-    # elif isinstance(entity, OrderedListItem):
-    #     content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
-    #     return f"{indent}{entity.index}. {content}"
-    # elif isinstance(entity, UnorderedListItem):
-    #     content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
-    #     return f"{indent}- {content}"
-    elif isinstance(entity, (OrderedListItem, UnorderedListItem)):
+    elif isinstance(entity, OrderedListItem) and linemode:
+        # content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
+        # return f"{indent}{entity.index}. {content}"
+        return f"{indent}{entity.index}. {entity.content}"
+    elif isinstance(entity, UnorderedListItem) and linemode:
+        # content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
+        # return f"{indent}- {content}"
+        return f"{indent}- {entity.content}"
+    elif isinstance(entity, (OrderedListItem, UnorderedListItem)) and not linemode:
         prefix = f"{entity.level * 2 * ' '}{entity.index}. " if isinstance(entity, OrderedListItem) else f"{entity.level * 2 * ' '}- "
         # prefix = f"{indent}{entity.index}. " if isinstance(entity, OrderedListItem) else f"{indent}- "
         content = convert_entities_to_text(entity.children, inline=True)
@@ -303,21 +305,24 @@ def convert_entity_to_text(entity, indent=''):
     elif isinstance(entity, EmptyLine):
         return f"{entity.content}"
     elif isinstance(entity, Paragraph):
-        # print("Paragraph", entity.content)
         return f"{entity.content}"
     elif isinstance(entity, DisplayMath):
         return f"$$\n{entity.content}\n$$"
     elif isinstance(entity, InlineMath):
         return f"${entity.content}$"
     elif isinstance(entity, CompositeEntity):
-        return convert_entities_to_text(entity.children, indent, inline=True)
+        if linemode:
+            return entity.content
+        else:
+            return convert_entities_to_text(entity.children, indent, inline=True)
     else:
         return str(entity)
 
-def convert_entities_to_text(entities, indent='', inline=False):
+def convert_entities_to_text(entities, indent='', inline=False, linemode=False):
     result = []
     for index, entity in enumerate(entities):
-        converted = convert_entity_to_text(entity, indent)
+        # print("entity", entity)
+        converted = convert_entity_to_text(entity, indent, linemode=linemode)
         if inline:
             result.append(converted)
         elif index != len(entities) - 1 or (index == len(entities) - 1 and isinstance(entities[-1], EmptyLine)):
@@ -336,9 +341,9 @@ def save_text_to_file(text: str, file_path: str):
     with open(file_path, 'w', encoding='utf-8') as file:
         file.write(text)
 
-def process_markdown_entities_and_save(entities, file_path, raw_text=None):
+def process_markdown_entities_and_save(entities, file_path, raw_text=None, linemode=False):
     # Step 1: Convert entities to text
-    text_output = convert_entities_to_text(entities)
+    text_output = convert_entities_to_text(entities, linemode=linemode)
     if raw_text and raw_text != text_output:
         raise ValueError("The text output does not match the raw text input.")
     # Step 2: Save to file
