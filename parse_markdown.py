@@ -41,31 +41,9 @@ class EmptyLine(MarkdownEntity):
     def __init__(self, content: str = ""):
         super().__init__(content, 'EmptyLine')
 
-class Paragraph(MarkdownEntity):
+class Text(MarkdownEntity):
     def __init__(self, content: str = ""):
-        super().__init__(content, 'Paragraph')
-
-class OrderList(MarkdownEntity):
-    def __init__(self, content: str = "", index: int = 1):
-        super().__init__(content, 'OrderList')
-        self.index = index
-
-class UnOrderList(MarkdownEntity):
-    def __init__(self, content: str = ""):
-        super().__init__(content, 'UnOrderList')
-
-class DisplayMath(MarkdownEntity):
-    def __init__(self, content: str = ""):
-        super().__init__(content, 'DisplayMath')
-
-class InlineLink(MarkdownEntity):
-    def __init__(self, content: str = "", url: str = ""):
-        super().__init__(content, 'InlineLink')
-        self.url = url
-
-class InlineMath(MarkdownEntity):
-    def __init__(self, content: str = ""):
-        super().__init__(content, 'InlineMath')
+        super().__init__(content, 'Text')
 
 class CompositeEntity(MarkdownEntity):
     def __init__(self, content: str = "", entity_type: str = ""):
@@ -85,7 +63,7 @@ class ListItem(CompositeEntity):
         inline_elements = parse_inline_elements(self.content)
         for elem in inline_elements:
             if isinstance(elem, str):
-                self.add_child(Paragraph(elem))
+                self.add_child(Text(elem))
             else:
                 self.add_child(elem)
 
@@ -100,6 +78,35 @@ class UnorderedListItem(ListItem):
         super().__init__(content, level)
         self.entity_type = 'UnorderedListItem'
 
+class DisplayMath(MarkdownEntity):
+    def __init__(self, content: str = ""):
+        super().__init__(content, 'DisplayMath')
+
+class InlineLink(MarkdownEntity):
+    def __init__(self, content: str = "", url: str = ""):
+        super().__init__(content, 'InlineLink')
+        self.url = url
+
+class InlineMath(MarkdownEntity):
+    def __init__(self, content: str = ""):
+        super().__init__(content, 'InlineMath')
+
+class Paragraph(CompositeEntity):
+    def __init__(self, content: str = ""):
+        super().__init__(content, 'Paragraph')
+        self.parse_content()
+
+    def parse_content(self):
+        inline_elements = parse_inline_elements(self.content)
+        for elem in inline_elements:
+            if isinstance(elem, str):
+                self.add_child(Text(elem))
+            else:
+                self.add_child(elem)
+
+    def __repr__(self):
+        return f'<Paragraph: {repr(self.children)}>'
+
 def parse_inline_elements(text):
     elements = []
     current_text = ""
@@ -108,7 +115,7 @@ def parse_inline_elements(text):
     while i < len(text):
         if text[i:i+2] == '$$':  # Display math
             if current_text:
-                elements.append(current_text)
+                elements.append(Text(current_text))
                 current_text = ""
             end = text.find('$$', i+2)
             if end != -1:
@@ -119,7 +126,7 @@ def parse_inline_elements(text):
                 break
         elif text[i] == '$':  # Inline math
             if current_text:
-                elements.append(current_text)
+                elements.append(Text(current_text))
                 current_text = ""
             end = text.find('$', i+1)
             if end != -1:
@@ -130,7 +137,7 @@ def parse_inline_elements(text):
                 break
         elif text[i] == '[':  # 潜在的链接
             if current_text:
-                elements.append(current_text)
+                elements.append(Text(current_text))
                 current_text = ""
 
             # 查找匹配的右括号
@@ -143,7 +150,7 @@ def parse_inline_elements(text):
                     bracket_count -= 1
                 j += 1
 
-            if j < len(text) and text[j:j+2] == '(':
+            if j < len(text) and text[j] == '(':
                 # 找到了有效的链接格式
                 content_end = j - 1
                 url_start = j + 1
@@ -163,7 +170,7 @@ def parse_inline_elements(text):
             i += 1
 
     if current_text:
-        elements.append(current_text)
+        elements.append(Text(current_text))
 
     return elements
 
@@ -173,42 +180,30 @@ def parse_markdown(lines, delimiter='\n'):
     current_math_block = []
     in_code_block = False
     in_math_block = False
-    language = None
-    # list_stack = []
+    language = ""
 
     for line in lines:
-        # print(repr(line))
-        # print('[' in line)
-        # print(']' in line )
-        # print( '(' in line and ')' in line )
-        # print( line.count('[') == 1 )
-        # print(line.strip().endswith(')') )
-        # print(line.strip().startswith('!') )
-        # print( line.count('!') == 1)
         if line == delimiter:
             continue
         if line.startswith('$$') and not in_code_block:
             if in_math_block:
-                # current_math_block.append(line.strip('$'))
                 entities.append(DisplayMath('\n'.join(current_math_block)))
                 current_math_block = []
                 in_math_block = False
             else:
                 in_math_block = True
-                # current_math_block.append(line.strip('$'))
         elif in_math_block:
-            # print(repr(line))
             current_math_block.append(line)
         elif line.startswith('#') and not in_code_block and not in_math_block:
             level = line.count('#')
             title_content = line[level:].strip()
             entities.append(TitleEntity(title_content, level))
         elif line.startswith('```'):
-            if in_code_block and language:
+            if in_code_block:
                 entities.append(CodeBlock('\n'.join(current_code_block), language))
                 current_code_block = []
                 in_code_block = False
-                language = None
+                language = ""
             else:
                 in_code_block = True
                 language = line.lstrip('`').strip()
@@ -237,10 +232,6 @@ def parse_markdown(lines, delimiter='\n'):
                 indent, list_type, content = list_match.groups()
                 level = len(indent) // 2  # Assuming 2 spaces per indent level
 
-                # Clear list stack if we're at a lower or same level
-                # while list_stack and list_stack[-1][0] >= level:
-                #     list_stack.pop()
-
                 if list_type in ['*', '-', '+']:
                     list_item = UnorderedListItem(content, level)
                 else:
@@ -248,26 +239,17 @@ def parse_markdown(lines, delimiter='\n'):
                     list_item = OrderedListItem(content, level, index)
 
                 entities.append(list_item)
-                # if list_stack:
-                #     list_stack[-1][1].add_child(list_item)
-                # else:
-                #     entities.append(list_item)
-
-                # list_stack.append((level, list_item))
 
             elif line.strip():
-                # Handle other content (paragraphs, links, etc.)
+                # 处理其他内容(段落、链接等)
                 inline_elements = parse_inline_elements(line)
-                if len(inline_elements) == 1 and isinstance(inline_elements[0], str):
-                    entities.append(Paragraph(line))
-                else:
-                    para = CompositeEntity(line, 'Paragraph')
-                    for elem in inline_elements:
-                        if isinstance(elem, str):
-                            para.add_child(Paragraph(elem))
-                        else:
-                            para.add_child(elem)
-                    entities.append(para)
+                para = Paragraph()
+                for elem in inline_elements:
+                    if isinstance(elem, str):
+                        para.add_child(Text(elem))
+                    else:
+                        para.add_child(elem)
+                entities.append(para)
             else:
                 entities.append(EmptyLine(line))
 
@@ -284,16 +266,11 @@ def convert_entity_to_text(entity, indent='', linemode=False):
         code = entity.content.lstrip('\n').rstrip('\n')
         return f"```{entity.language}\n{code}\n```"
     elif isinstance(entity, OrderedListItem) and linemode:
-        # content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
-        # return f"{indent}{entity.index}. {content}"
         return f"{indent}{entity.index}. {entity.content}"
     elif isinstance(entity, UnorderedListItem) and linemode:
-        # content = convert_entities_to_text(entity.children, indent + '  ', inline=True) if entity.children else entity.content
-        # return f"{indent}- {content}"
         return f"{indent}- {entity.content}"
     elif isinstance(entity, (OrderedListItem, UnorderedListItem)) and not linemode:
         prefix = f"{entity.level * 2 * ' '}{entity.index}. " if isinstance(entity, OrderedListItem) else f"{entity.level * 2 * ' '}- "
-        # prefix = f"{indent}{entity.index}. " if isinstance(entity, OrderedListItem) else f"{indent}- "
         content = convert_entities_to_text(entity.children, inline=True)
         return f"{prefix}{content}"
     elif isinstance(entity, LinkEntity):
@@ -304,8 +281,10 @@ def convert_entity_to_text(entity, indent='', linemode=False):
         return f"[{entity.content}]({entity.url})"
     elif isinstance(entity, EmptyLine):
         return f"{entity.content}"
-    elif isinstance(entity, Paragraph):
+    elif isinstance(entity, Text):
         return f"{entity.content}"
+    elif isinstance(entity, Paragraph):
+        return convert_entities_to_text(entity.children, inline=True)
     elif isinstance(entity, DisplayMath):
         return f"$$\n{entity.content}\n$$"
     elif isinstance(entity, InlineMath):
@@ -405,6 +384,9 @@ def check_markdown_parse(markdown_file_path, output_file_path="output.md", delim
         # print(parsed_entities)
         for entity in parsed_entities:
             print(entity)
+            if hasattr(entity, 'children'):
+                for child in entity.children:
+                    print("child", child)
 
     # 将解析结果转换为文本
     converted_text = convert_entities_to_text(parsed_entities)
