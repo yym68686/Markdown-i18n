@@ -85,9 +85,15 @@ def translate(input_file_path, output_file_path="output.md", language="English",
     translated_index = 0
 
     for line in diff:
+        # print("translated_index, source_index", translated_index, source_index)
+        # print(repr(line))
+        # print(repr(current_translated_entities[translated_index].content))
+        # print(repr(current_source_content[source_index].content))
+        # print()
         if line.startswith('  '):  # 未修改的行
             # print("line", repr(line), translated_index < len(current_translated_entities), current_translated_entities[translated_index].content != '', repr(current_translated_entities[translated_index].content))
-            if translated_index < len(current_translated_entities) and current_translated_entities[translated_index].content != '':
+            # if translated_index < len(current_translated_entities) and current_translated_entities[translated_index].content != '':
+            if translated_index < len(current_translated_entities):
                 translated_entities.append(current_translated_entities[translated_index])
                 translated_index += 1
             else:
@@ -123,6 +129,7 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     is_all_empty = all(entity.content.strip() == '' for entity in translated_entities)
     if not is_all_empty:
+        # print(translated_entities)
         process_markdown_entities_and_save(translated_entities, output_file_path, linemode=True)
 
 if __name__ == "__main__":

@@ -57,7 +57,8 @@ class ListItem(CompositeEntity):
     def __init__(self, content: str = "", level: int = 0):
         super().__init__(content, 'ListItem')
         self.level = level
-        self.parse_content()
+        if content:
+            self.parse_content()
 
     def parse_content(self):
         inline_elements = parse_inline_elements(self.content)
@@ -94,7 +95,8 @@ class InlineMath(MarkdownEntity):
 class Paragraph(CompositeEntity):
     def __init__(self, content: str = ""):
         super().__init__(content, 'Paragraph')
-        self.parse_content()
+        if content:
+            self.parse_content()
 
     def parse_content(self):
         inline_elements = parse_inline_elements(self.content)
@@ -247,8 +249,10 @@ def parse_markdown(lines, delimiter='\n'):
                 for elem in inline_elements:
                     if isinstance(elem, str):
                         para.add_child(Text(elem))
+                        para.content += elem
                     else:
                         para.add_child(elem)
+                        para.content += convert_entity_to_text(elem)
                 entities.append(para)
             else:
                 entities.append(EmptyLine(line))
@@ -284,7 +288,8 @@ def convert_entity_to_text(entity, indent='', linemode=False):
     elif isinstance(entity, Text):
         return f"{entity.content}"
     elif isinstance(entity, Paragraph):
-        return convert_entities_to_text(entity.children, inline=True)
+        return entity.content
+        # return convert_entities_to_text(entity.children, inline=True)
     elif isinstance(entity, DisplayMath):
         return f"$$\n{entity.content}\n$$"
     elif isinstance(entity, InlineMath):
