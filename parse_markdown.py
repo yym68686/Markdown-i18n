@@ -18,9 +18,10 @@ class TitleEntity(MarkdownEntity):
         self.level = level
 
 class CodeBlock(MarkdownEntity):
-    def __init__(self, content: str = "", language: str = 'python'):
+    def __init__(self, content: str = "", language: str = 'python', delimiter: str = '```'):
         super().__init__(content, 'CodeBlock')
         self.language = language
+        self.delimiter = delimiter
 
 class ListItem(MarkdownEntity):
     def __init__(self, content: str = ""):
@@ -183,6 +184,7 @@ def parse_markdown(lines, delimiter='\n'):
     in_code_block = False
     in_math_block = False
     language = ""
+    code_delimiter = ""
 
     for line in lines:
         if line == delimiter:
@@ -200,15 +202,20 @@ def parse_markdown(lines, delimiter='\n'):
             level = line.count('#')
             title_content = line[level:].strip()
             entities.append(TitleEntity(title_content, level))
-        elif line.startswith('```'):
+        elif line.startswith('```') or line.startswith('~~~'):  # 支持两种代码块分隔符
             if in_code_block:
-                entities.append(CodeBlock('\n'.join(current_code_block), language))
+                if not line.startswith(code_delimiter):
+                    current_code_block.append(line)
+                    continue
+                entities.append(CodeBlock('\n'.join(current_code_block), language, code_delimiter))
                 current_code_block = []
                 in_code_block = False
                 language = ""
+                code_delimiter = None
             else:
                 in_code_block = True
-                language = line.lstrip('`').strip()
+                code_delimiter = '```' if line.startswith('```') else '~~~'  # 记录使用的分隔符
+                language = line.lstrip('`').lstrip('~').strip()
         elif in_code_block:
             current_code_block.append(line)
         elif '[' in line and ']' in line and '(' in line and ')' in line and line.count('[') == 1 and line.strip().endswith(')') and line.strip().startswith('[') and line.count('!') == 0:
@@ -267,8 +274,8 @@ def convert_entity_to_text(entity, indent='', linemode=False):
     if isinstance(entity, TitleEntity):
         return f"{'#' * entity.level} {entity.content}"
     elif isinstance(entity, CodeBlock):
-        code = entity.content.lstrip('\n').rstrip('\n')
-        return f"```{entity.language}\n{code}\n```"
+        code = entity.content.lstrip('\n')
+        return f"{entity.delimiter}{entity.language}\n{code}\n{entity.delimiter}"
     elif isinstance(entity, OrderedListItem) and linemode:
         return f"{indent}{entity.index}. {entity.content}"
     elif isinstance(entity, UnorderedListItem) and linemode:
@@ -367,6 +374,8 @@ def get_entities_from_markdown_file(file_path, delimiter='\n', raw_text=None):
     # 读取 Markdown 文件
     if raw_text == None:
         markdown_text = read_markdown_file(file_path)
+        if markdown_text == "":
+            return []
     else:
         markdown_text = raw_text
 

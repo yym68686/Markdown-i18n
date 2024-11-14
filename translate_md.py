@@ -62,14 +62,15 @@ def translate(input_file_path, output_file_path="output.md", language="English",
 
     # 读取当前源文件内容
     current_source_content = get_entities_from_markdown_file(input_file_path)
+    # print("current_source_content", current_source_content)
 
     # 读取已翻译的文件内容
     if os.path.exists(output_file_path):
         current_translated_entities = get_latest_commit_file_entities(output_file_path, current_source_content)
-        # print("latest_commit_entities", current_translated_entities)
     else:
         # 如果输出文件不存在，自动创建文件，并返回空字符串
         current_translated_entities = get_entities_from_markdown_file(output_file_path)
+    # print("current_translated_entities", current_translated_entities)
     # 获取最新提交的源文件内容
     latest_commit_entities = get_latest_commit_file_entities(input_file_path, current_source_content)
 
@@ -91,10 +92,12 @@ def translate(input_file_path, output_file_path="output.md", language="English",
         # print(repr(current_source_content[source_index].content))
         # print()
         if line.startswith('  '):  # 未修改的行
+            # print("line", repr(line), translated_index < len(current_translated_entities))
             # print("line", repr(line), translated_index < len(current_translated_entities), current_translated_entities[translated_index].content != '', repr(current_translated_entities[translated_index].content))
             # if translated_index < len(current_translated_entities) and current_translated_entities[translated_index].content != '':
             if translated_index < len(current_translated_entities):
                 translated_entities.append(current_translated_entities[translated_index])
+                # print("translated_entities", translated_entities)
                 translated_index += 1
             else:
                 # 如果已翻译内容不足，则翻译源内容
